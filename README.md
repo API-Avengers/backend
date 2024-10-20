@@ -15,6 +15,8 @@ To get started with the backend, make sure you have the following dependencies i
 - **python-dotenv**: To load environment variables
 - **CORS Middleware**: For cross-origin resource sharing (CORS)
 
+  ```pip install -r requirements.txt```
+
 ### Installation
 
 1. **Clone the repository**:
