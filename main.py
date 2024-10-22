@@ -1,10 +1,12 @@
-import requests
+import logging
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-import logging
-import os
 from dotenv import load_dotenv
+import google.generativeai as genai  # Import the Google Generative AI library for interacting with Gemini
+import os
+# Load environment variables from .env
+load_dotenv()
 
 app = FastAPI()
 
@@ -17,61 +19,56 @@ app.add_middleware(
     allow_headers=["*"],  # Allow all headers
 )
 
-gemini_api_key = os.getenv("GEMINI_API_KEY")
+# Load API Key from environment variables
+google_api_key = os.getenv("GEMINI_API_KEY")
+
+# Set up Google Generative AI client
+genai.configure(api_key=google_api_key)  # Use the API key for authentication
 
 # Logging setup
 logging.basicConfig(level=logging.INFO)
 
-# Data Model
+# Data Model for Trip Details
 class TripDetails(BaseModel):
     destination: str
     days: int
     budget: str
     trip_type: str
 
-# POST endpoint to create itinerary
+# POST endpoint to create itinerary using Google Gemini API
 @app.post("/create-itinerary/")
 async def create_itinerary(trip: TripDetails):
     try:
         # Logging the trip details for debugging
-        logging.info(f"Received trip details: {trip}")
+        logging.info(f"Trip Details: {trip}")
 
-        # Replace with the correct Gemini API URL
-        gemini_api_url = "https://api.gemini.com/itinerary"
-
-        # Example API call to Gemini (replace URL and headers with correct info)
-        gemini_response = requests.post(
-            gemini_api_url, 
-            json={
-                "destination": trip.destination,
-                "days": trip.days,
-                "budget": trip.budget,
-                "trip_type": trip.trip_type
-            },
-            headers={
-                "Authorization": f"Bearer {gemini_api_key}"  # Replace with actual key
-            }
+        # Construct the prompt for the Gemini AI model
+        prompt = (
+            f"Please create a detailed itinerary for a {trip.trip_type} trip to {trip.destination} "
+            f"for {trip.days} days with a {trip.budget} budget. Include points of interest, "
+            "restaurants, and activities for each day."
         )
 
-        # Check if the response is successful
-        if gemini_response.status_code != 200:
-            logging.error(f"Failed to get response from Gemini: {gemini_response.text}")
-            raise HTTPException(status_code=500, detail="Error communicating with Gemini API")
-        
-        gemini_data = gemini_response.json()
+        # Define generation configuration
+        generation_config = genai.types.GenerationConfig(
+            candidate_count=1,           # Generate only one candidate output
+            max_output_tokens=500,        # Max tokens (control output length)
+            temperature=1.0               # Temperature controls randomness/creativity
+        )
 
-        # Log the data received from Gemini API for debugging
-        logging.info(f"Gemini API Response: {gemini_data}")
+        # Initialize the generative model
+        model = genai.GenerativeModel("gemini-1.5-flash")
 
-        # Process the response and return the itinerary
-        return {
-            "itinerary": gemini_data.get("itinerary", "No itinerary found")
-        }
+        # Generate content using the Gemini model
+        response = model.generate_content(prompt, generation_config=generation_config)
 
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Request to Gemini API failed: {e}")
-        raise HTTPException(status_code=500, detail="Failed to reach Gemini API")
-    
+        # Log the generated response from Google AI
+        logging.info(f"Google Gemini AI Response: {response.text}")
+
+        # Return the generated itinerary in the response
+        return {"itinerary": response.text}
+
     except Exception as e:
-        logging.error(f"Failed to process itinerary: {e}")
+        # Log any exceptions that occur during the process
+        logging.error(f"Exception during Google AI API call: {str(e)}")
         raise HTTPException(status_code=500, detail="Failed to generate itinerary")
