@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import google.generativeai as genai  # Import the Google Generative AI library for interacting with Gemini
 import os
+from pydantic import BaseModel
 # Load environment variables from .env
 load_dotenv()
 
@@ -30,10 +31,13 @@ logging.basicConfig(level=logging.INFO)
 
 # Data Model for Trip Details
 class TripDetails(BaseModel):
+    from_: str  # Use 'from_' because 'from' is a reserved keyword in Python
     destination: str
-    days: int
+    startDate: str  # Format: YYYY-MM-DD
+    endDate: str    # Format: YYYY-MM-DD
     budget: str
     trip_type: str
+    mode: str
 
 # POST endpoint to create itinerary using Google Gemini API
 @app.post("/create-itinerary/")
@@ -44,10 +48,11 @@ async def create_itinerary(trip: TripDetails):
 
         # Construct the prompt for the Gemini AI model
         prompt = (
-            f"Please create a detailed itinerary for a {trip.trip_type} trip to {trip.destination} "
-            f"for {trip.days} days with a {trip.budget} budget. Include points of interest, "
-            "restaurants, and activities for each day."
-        )
+    f"Please create a detailed itinerary for a {trip.trip_type} trip from {trip.from_} to {trip.destination} "
+    f"starting on {trip.startDate} and ending on {trip.endDate} with a {trip.budget} budget. "
+    "Include points of interest, restaurants, and activities for each day."
+)
+
 
         # Define generation configuration
         generation_config = genai.types.GenerationConfig(
