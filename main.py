@@ -14,7 +14,8 @@ app = FastAPI()
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Frontend URL
+    # allow_origins=["http://localhost:3000"],  # Frontend URL
+    allow_origins=["https://frontend-mcvw.onrender.com"],  # Frontend URL
     allow_credentials=True,
     allow_methods=["*"],  # Allow all methods (GET, POST, etc.)
     allow_headers=["*"],  # Allow all headers
